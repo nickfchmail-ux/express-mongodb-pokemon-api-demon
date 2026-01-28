@@ -1,6 +1,6 @@
-# express-mongodb-pokemon-api-demo
+# Pokémon REST API Backend
 
-## About
+__About__
 A pokemon API build with express, supporting GET, POST, PATCH, DELETE methods. It provides a custom query feature, supported by mongoose.
 Different routes has different params, query, for GET, POST, PATCH, DELETE request. Also, It implements authentication and authoriation with JWT token for logging in. For a detailed API document, please see:
 
