@@ -19,17 +19,16 @@ export default class Email {
 
   newTransport() {
     if (process.env.NODE_ENV === 'production') {
-      //sendgrid
-
       return nodemailer.createTransport({
-        service: 'SendGrid',
+        host: 'smtp.sendgrid.net',
+        port: 587,
+        secure: false, // Use STARTTLS
         auth: {
-          user: process.env.SENDGRID_USERNAME,
-          pass: process.env.SENDGRID_PASSWORD,
+          user: 'apikey', // Must be exactly this string
+          pass: process.env.SENDGRID_API_KEY, // Your full SendGrid API key
         },
       });
     }
-
     return nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
