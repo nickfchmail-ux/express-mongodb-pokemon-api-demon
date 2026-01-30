@@ -2,7 +2,8 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import User from '../models/userModel.js';
 import AppError from '../utils/appError.js';
-import sendEmail from '../utils/email.js';
+import { default as Email } from '../utils/email.js';
+
 function generateAccessToken(userId) {
   return jwt.sign({ id: userId }, process.env.JWT_ACCESS_TOKEN_SECRET, {
     expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES_IN,
@@ -41,7 +42,8 @@ export async function signUp(req, res, next) {
       password,
       passwordConfirm,
     });
-
+    const url = `${req.protocol}://${req.get('host')}/me`;
+    await new Email(newUser, url).sendWelcome();
     return res.status(201).json({
       status: 'success',
       data: { user: newUser },
@@ -164,19 +166,13 @@ export async function forgotPassword(req, res, next) {
     const user = await User.findOne({ email: req.body.email });
 
     const resetToken = user.createPasswordResetToken();
-
-    await user.save({ validateBeforeSave: false });
-
     const resetURL = `${req.protocol}://${req.get('host')}/api/users/resetPassword/${resetToken}`;
+    await user.save({ validateBeforeSave: false });
 
     const message = `Forgot your password? Submit a PATH request with your new password and passwordConfirm to: ${resetURL}.\nIf you didn't forget your password, please ingore this email`;
 
     try {
-      await sendEmail({
-        email: user.email,
-        subject: 'Your password reset token (valid only for 10 mins)',
-        message,
-      });
+      await new Email(user, resetURL).sendPasswordReset();
     } catch (err) {
       user.passwordResetToken = undefined;
       user.passwordResetExpires = undefined;

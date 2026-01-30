@@ -1,38 +1,72 @@
+import { convert } from 'html-to-text';
 import nodemailer from 'nodemailer';
+import { fileURLToPath } from 'url';
 
-const sendEmail = async (options) => {
-  /*
-    for gmail:
+import { dirname } from 'path';
+import pug from 'pug';
 
-  const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-      user: process.env.EMAIL_USERNAME,
-      pass: process.env.EMAIL_PASSWORD,
-    },
-  });
+// Recreate __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-  Activate in gmail "less secure app" option
+export default class Email {
+  constructor(user, url) {
+    this.to = user.email;
+    this.firstName = user.name.split(' ')[0];
+    this.url = url;
+    this.from = `Nick Fong <${process.env.EMAIL_FROM}>`;
+  }
 
-    */
+  newTransport() {
+    if (process.env.NODE_ENV === 'production') {
+      //sendgrid
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
-    auth: {
-      user: process.env.EMAIL_USERNAME,
-      pass: process.env.EMAIL_PASSWORD,
-    },
-  });
+      return nodemailer.createTransport({
+        service: 'SendGrid',
+        auth: {
+          user: process.env.SENDGRID_USERNAME,
+          pass: process.env.SENDGRID_PASSWORD,
+        },
+      });
+    }
 
-  const mailOptions = {
-    from: 'Nick Fong <hello@nick.io>',
-    to: options.email,
-    subject: options.subject,
-    text: options.message,
-  };
+    return nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      auth: {
+        user: process.env.EMAIL_USERNAME,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+  }
 
-  await transporter.sendMail(mailOptions);
-};
+  async send(template, subject) {
+    const html = pug.renderFile(`${__dirname}/../emails/${template}.pug`, {
+      firstName: this.firstName,
+      url: this.url,
+      subject,
+    });
 
-export default sendEmail;
+    //send the actual email
+    const mailOptions = {
+      from: this.from,
+      to: this.to,
+      subject,
+      html,
+      text: convert(html),
+    };
+
+    await this.newTransport().sendMail(mailOptions);
+  }
+
+  async sendWelcome() {
+    await this.send('welcome', 'Weclome to our family!');
+  }
+
+  async sendPasswordReset() {
+    await this.send(
+      'passwordReset',
+      'Your password reset token (valid for only 10 minutes)',
+    );
+  }
+}
