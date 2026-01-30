@@ -45,7 +45,7 @@ app.use((req, res, next) => {
 //global error handling middleware
 app.use(globalErrorHandler);
 
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
   console.log('the server is listening on port: ', port);
