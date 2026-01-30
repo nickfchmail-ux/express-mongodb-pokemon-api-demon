@@ -14,3 +14,4 @@ export async function getUserProfile(req, res) {
     res.status(500).json({ status: 'error', message: error.message });
   }
 }
+

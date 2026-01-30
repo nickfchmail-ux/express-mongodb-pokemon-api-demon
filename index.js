@@ -6,13 +6,15 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import mongoose from 'mongoose';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import globalErrorHandler from './controllers/errorController.js';
 import authRouter from './routes/authRoute.js';
 import pokemonRouter from './routes/pokemonRoute.js';
 import reviewRouter from './routes/reviewRoute.js';
 import userRouter from './routes/userRoute.js';
 import AppError from './utils/appError.js';
-
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DB = process.env.MONGO_DB;
 
@@ -29,13 +31,12 @@ app.use(compression());
 app.use(express.json());
 app.use(cookieParser());
 
-
-
 app.use('/', express.static('public'));
 app.use('/api/refresh', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/pokemons', pokemonRouter);
 app.use('/api/review', reviewRouter);
+app.use('/image', express.static(path.join(__dirname, 'public/image')));
 
 //global error handling middleware
 app.use(globalErrorHandler);

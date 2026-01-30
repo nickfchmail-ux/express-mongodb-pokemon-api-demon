@@ -36,14 +36,7 @@ router.route('/').post(async (req, res, next) => {
       { expiresIn: '15m' },
     );
 
-    // Set new cookies
-    res.cookie('accessToken', newAccessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000,
-    });
-    res.cookie('refreshToken', newRefreshToken, {
+    res.cookie('jwt', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
@@ -60,5 +53,9 @@ router.route('/').post(async (req, res, next) => {
     return next(new AppError(err, 403));
   }
 });
+
+
+
+
 
 export default router;

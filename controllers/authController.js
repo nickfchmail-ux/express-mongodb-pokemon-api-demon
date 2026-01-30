@@ -101,7 +101,7 @@ export async function signIn(req, res, next) {
 }
 
 export async function protect(req, res, next) {
-  console.log('Protect middleware reached'); // better debug message
+
 
   let token;
 
@@ -122,10 +122,10 @@ export async function protect(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_TOKEN_SECRET);
-    console.log('Token verified for user ID:', decoded.id); // optional debug
+
 
     const user = await User.findById(decoded.id);
-    console.log('user logged in: ', user);
+
     if (!user) {
       return next(
         new AppError('The user belonging to this token no longer exists.', 401),
@@ -240,4 +240,20 @@ export async function resetPassword(req, res, next) {
   } catch (err) {
     return next(new AppError(err, 400));
   }
+}
+
+export async function logout(req, res, next) {
+  // Clear the refresh token cookie
+  res.clearCookie('jwt', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Logged out successfully',
+  });
+
+  next();
 }

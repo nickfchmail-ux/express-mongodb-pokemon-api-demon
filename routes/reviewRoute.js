@@ -13,7 +13,7 @@ router.route('/').get(getAll(Review));
 
 router.route('/createReview').post(protect, createOne(Review));
 
-router.route('/updateReview').patch(protect, updateOne(Review));
+router.route('/updateReview/:id').patch(protect, updateOne(Review));
 
 router.route('/deleteReview').delete(protect, deleteOne(Review));
 

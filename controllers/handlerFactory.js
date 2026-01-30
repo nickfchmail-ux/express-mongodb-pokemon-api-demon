@@ -1,5 +1,11 @@
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import APIFeatures from '../utils/apiFeature.js';
 import AppError from '../utils/appError.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export function deleteOne(Model) {
   return async (req, res, next) => {
     try {
@@ -16,44 +22,87 @@ export function deleteOne(Model) {
 
 export function updateOne(Model) {
   return async (req, res, next) => {
-    console.log('this method is called');
+    console.log('params: ', req.params.id);
+    console.log('model', Model.modelName);
     try {
-      // allow users to only update items belonging to themselve
-      const item = await Model.findById(req.body.id);
+      const id = req.params.id;
+      if (!id) {
+        return next(new AppError('No ID provided for update', 400));
+      }
 
-      if (item?.userId && item?.userId.toString() !== req.user._id.toString()) {
+      const item = await Model.findById(id);
+      console.log('item: ', item);
+      if (!item) {
+        return next(new AppError('No document found with that ID', 404));
+      }
+      if (item.userId && item.userId.toString() !== req.user._id.toString()) {
         return next(
-          new AppError('you are not allow to perform this action', 403),
+          new AppError('You are not allowed to perform this action', 403),
         );
       }
-      const id = req.body?.id;
-      const patchData = req.body;
 
+      const patchData = { ...req.body };
+      //users are not allow to amend the fields below:
+      const restrictedProperty = [
+        '_id',
+        'userId',
+        'pokemonId',
+        '__v',
+        'password',
+        'passwordConfirm',
+        'role',
+        'email',
+        'passwordResetExpires',
+        'passwordResetToken',
+        'passwordChangeAt',
+      ];
+      //delete forbidden fields from the body, so that no action would be performed for these
+      restrictedProperty.forEach((p) => {
+        if (patchData[p]) {
+          delete patchData[p];
+        }
+      });
+
+      let newImagePath = null;
       if (req.file) {
-        patchData.image = `/image/${req.user._id}/${req.file.filename}`;
+        newImagePath = `/image/user-${req.user._id}/${req.file.filename}`;
+        patchData.image = newImagePath;
       }
 
+      // Perform the update
       const doc = await Model.findByIdAndUpdate(id, patchData, {
         new: true,
         runValidators: true,
       });
 
+      // Delete old image if a new one was uploaded and old path is different
+      if (newImagePath && item.image && item.image !== newImagePath) {
+        const oldFilePath = path.join(__dirname, '..', 'public', item.image);
+        try {
+          await fs.unlink(oldFilePath);
+        } catch (err) {
+          if (err.code !== 'ENOENT') {
+            // ignore if file already missing
+            console.error(
+              `Failed to delete old image ${oldFilePath}:`,
+              err.message,
+            );
+          }
+        }
+      }
+
       return res.status(200).json({
         status: 'success',
-        data: {
-          data: doc,
-        },
+        data: { data: doc },
       });
     } catch (err) {
-      return next(new AppError(err, 400));
+      return next(new AppError(err.message || err, 400));
     }
   };
 }
-
 export function createOne(Model) {
   return async (req, res, next) => {
     try {
-      console.log(Model.modelName);
       let receivedBody = { ...req.body };
       receivedBody.userId = req.user._id;
       if (req.file) {
@@ -87,7 +136,6 @@ export function createOne(Model) {
 
 export function getOne(Model) {
   return async (req, res, next) => {
-    console.log('params', req.params);
     try {
       let query = Model.findById(req.params.id);
 
