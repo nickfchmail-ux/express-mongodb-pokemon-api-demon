@@ -22,6 +22,10 @@ mongoose.connect(DB).then((con) => {
 });
 
 const app = express();
+app.use('/api/refresh', authRouter);
+app.use('/api/users', userRouter);
+app.use('/api/pokemons', pokemonRouter);
+app.use('/api/review', reviewRouter);
 
 //for security
 app.use(cors());
@@ -31,10 +35,6 @@ app.use(mongoSanitize());
 app.use(express.json());
 app.use(cookieParser());
 app.use(helmet());
-app.use('/api/refresh', authRouter);
-app.use('/api/users', userRouter);
-app.use('/api/pokemons', pokemonRouter);
-app.use('/api/review', reviewRouter);
 
 //error handling if no reaching point is found
 
