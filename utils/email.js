@@ -1,11 +1,11 @@
+import sgMail from '@sendgrid/mail'; // new import
 import { convert } from 'html-to-text';
 import nodemailer from 'nodemailer';
-import { fileURLToPath } from 'url';
-
 import { dirname } from 'path';
 import pug from 'pug';
+import 'url';
+import { fileURLToPath } from 'url';
 
-// Recreate __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -17,28 +17,7 @@ export default class Email {
     this.from = `Nick Fong <${process.env.EMAIL_FROM}>`;
   }
 
-  newTransport() {
-    if (process.env.NODE_ENV === 'production') {
-      return nodemailer.createTransport({
-        host: 'smtp.sendgrid.net',
-        port: 587,
-        secure: false, // Use STARTTLS
-        auth: {
-          user: 'apikey', // Must be exactly this string
-          pass: process.env.SENDGRID_API_KEY, // Your full SendGrid API key
-        },
-      });
-    }
-    return nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      auth: {
-        user: process.env.EMAIL_USERNAME,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
-  }
-
+  // New unified send method using SendGrid API in production
   async send(template, subject) {
     const html = pug.renderFile(`${__dirname}/../emails/${template}.pug`, {
       firstName: this.firstName,
@@ -46,7 +25,6 @@ export default class Email {
       subject,
     });
 
-    //send the actual email
     const mailOptions = {
       from: this.from,
       to: this.to,
@@ -55,11 +33,25 @@ export default class Email {
       text: convert(html),
     };
 
-    await this.newTransport().sendMail(mailOptions);
+    if (process.env.NODE_ENV === 'production') {
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      await sgMail.send(mailOptions);
+    } else {
+      // Keep Nodemailer for local/dev testing
+      const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        auth: {
+          user: process.env.EMAIL_USERNAME,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      });
+      await transporter.sendMail(mailOptions);
+    }
   }
 
   async sendWelcome() {
-    await this.send('welcome', 'Weclome to our family!');
+    await this.send('welcome', 'Welcome to our family!');
   }
 
   async sendPasswordReset() {
