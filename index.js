@@ -12,7 +12,7 @@ import pokemonRouter from './routes/pokemonRoute.js';
 import reviewRouter from './routes/reviewRoute.js';
 import userRouter from './routes/userRoute.js';
 import AppError from './utils/appError.js';
-console.log('Loaded SUPABASE_URL:', process.env.SUPABASE_URL); // debug line
+
 
 const DB = process.env.MONGO_DB;
 
@@ -30,7 +30,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(cookieParser());
-
+app.use('/', express.static('public'));
 app.use('/api/refresh', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/pokemons', pokemonRouter);
