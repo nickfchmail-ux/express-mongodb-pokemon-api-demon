@@ -29,7 +29,8 @@ app.use(compression());
 app.use(express.json());
 app.use(cookieParser());
 
-app.use(cookieParser());
+
+
 app.use('/', express.static('public'));
 app.use('/api/refresh', authRouter);
 app.use('/api/users', userRouter);

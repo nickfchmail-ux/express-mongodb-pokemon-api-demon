@@ -101,51 +101,61 @@ export async function signIn(req, res, next) {
 }
 
 export async function protect(req, res, next) {
+  console.log('Protect middleware reached'); // better debug message
+
   let token;
+
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
     token = req.headers.authorization.split(' ')[1];
   } else if (req.cookies?.jwt) {
-    token = req.cookie;
+    token = req.cookies.jwt; // ← fixed: was req.cookie (missing 's')
   }
 
   if (!token) {
-    next(new AppError('protected route, please login to continue'));
+    return next(
+      new AppError('You are not logged in. Please log in to continue.', 401),
+    );
   }
 
   try {
-    const decode = jwt.verify(token, process.env.JWT_ACCESS_TOKEN_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_TOKEN_SECRET);
+    console.log('Token verified for user ID:', decoded.id); // optional debug
 
-    const user = await User.findById(decode.id);
-
+    const user = await User.findById(decoded.id);
+    console.log('user logged in: ', user);
     if (!user) {
-      return next(new AppError('The user does not exist', 400));
+      return next(
+        new AppError('The user belonging to this token no longer exists.', 401),
+      );
     }
 
-    if (user.changePasswordAfter(decode.iat)) {
+    if (user.changedPasswordAfter(decoded.iat)) {
       return next(
         new AppError(
-          'User recently changed password! please log in agin.',
+          'User recently changed password! Please log in again.',
           401,
         ),
       );
     }
 
     req.user = user;
-
     next();
   } catch (error) {
+    console.error('Token verification error:', error.message); // helps in Render logs
+
     if (error.name === 'TokenExpiredError') {
-      return next(new AppError('Token has expired, please login again', 403));
+      return next(
+        new AppError('Your token has expired. Please log in again.', 401),
+      );
     }
-
     if (error.name === 'JsonWebTokenError') {
-      return next(new AppError('Invalid Token', 403));
+      return next(new AppError('Invalid token. Please log in again.', 401));
     }
 
-    return next(new AppError(err, 403));
+    return next(new AppError(error, 401));
   }
 }
 

@@ -16,6 +16,7 @@ export function deleteOne(Model) {
 
 export function updateOne(Model) {
   return async (req, res, next) => {
+    console.log('this method is called');
     try {
       // allow users to only update items belonging to themselve
       const item = await Model.findById(req.body.id);
